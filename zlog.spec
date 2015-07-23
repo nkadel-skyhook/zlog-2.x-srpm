@@ -17,7 +17,8 @@
 
 Name:           zlog
 Version:        1.2.12
-Release:        3.1
+#Release:        3.1
+Release:        0.3.1%{?dist}
 License:        LGPL-2.1
 Summary:        A high-performance, thread safe, pure C logging library
 Url:            http://hardysimpson.github.com/zlog/
@@ -75,6 +76,9 @@ find %{buildroot}/%{_libdir} -name "*.la" -exec rm -vf {} ';'
 %{_bindir}/zlog-chk-conf
 %{_libdir}/libzlog.so.*
 %{_mandir}/man1/zlog-chk-conf.1*
+# Different locations for RHEL deployment
+%{_docdir}/%{name}
+
 
 %files devel
 %defattr(-,root,root)
@@ -82,6 +86,11 @@ find %{buildroot}/%{_libdir} -name "*.la" -exec rm -vf {} ';'
 %{_includedir}/zlog.h
 
 %changelog
+* Thu Jul 23 2015 Nico Kadel-Garcia
+- twak for RHEL compatibility
+- Add %%dist to release name
+- Add %%docdir/zlog for documents on RHEL
+
 * Thu Sep 26 2013 boris@steki.net
 - updated to latest upstream 1.2.12
   - bugfix for avoid segmentation fault if call zlog_init()

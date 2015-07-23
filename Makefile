@@ -9,9 +9,7 @@ LANG=C
 #MOCKS+=epel-5-i386
 #MOCKS+=epel-4-i386
 
-MOCKS+=fedora-21-x86_64
-MOCKS+=epel-7-x86_64
-#MOCKS+=epel-6-x86_64
+MOCKS+=epel-6-x86_64
 #MOCKS+=epel-5-x86_64
 #MOCKS+=epel-4-x86_64
 
