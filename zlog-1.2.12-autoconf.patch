@@ -1,0 +1,252 @@
+diff --git a/Makefile.am b/Makefile.am
+new file mode 100644
+index 0000000..6331bc5
+--- /dev/null
++++ b/Makefile.am
+@@ -0,0 +1,4 @@
++ACLOCAL_AMFLAGS = -I m4
++SUBDIRS = doc src tools test
++dist_doc_DATA = COPYING INSTALL README TODO
++EXTRA_DIST = autogen.sh
+diff --git a/autogen.sh b/autogen.sh
+new file mode 100644
+index 0000000..4967c32
+--- /dev/null
++++ b/autogen.sh
+@@ -0,0 +1,50 @@
++#!/bin/sh
++#
++
++function good_or_bad {
++if [ $? -eq 0 ]; then
++	echo OK
++else
++	echo FAILED
++fi
++}
++
++function rename_makefile {
++	if [ -f $1 ]; then
++		mv  $1 $1.old_static
++	else
++		echo
++		echo "Already renamed?"
++	fi
++}
++
++echo -n "Finding version and setting it up for autoconf.... "
++VERSION_STRING=$(sed -e 's/.*ZLOG_VERSION.*"\(.*\)"/\1/g' src/version.h)
++sed -i "s/\[VERSION\]/[${VERSION_STRING}]/g" configure.ac
++good_or_bad
++
++echo -n "Renaming original static makefiles.... "
++rename_makefile test/makefile && \
++rename_makefile src/makefile && \
++rename_makefile doc/makefile && \
++rename_makefile makefile
++good_or_bad
++
++
++echo -n "Running aclocal ..... "
++aclocal
++good_or_bad
++
++echo -n "Run libtoolize ..... "
++libtoolize -fc
++good_or_bad
++
++echo -n "Running autoconf ..... "
++autoconf
++good_or_bad
++
++echo -n "Running automake ..... "
++automake -afic
++good_or_bad
++
++echo "Now run ./configure <parameters> to configure application"
+diff --git a/configure.ac b/configure.ac
+new file mode 100644
+index 0000000..9991082
+--- /dev/null
++++ b/configure.ac
+@@ -0,0 +1,45 @@
++#                                               -*- Autoconf -*-
++# Process this file with autoconf to produce a configure script.
++
++AC_PREREQ([2.52])
++AC_INIT([zlog], [1.2.7], [HardySimpson1984@gmail.com])
++AC_CONFIG_SRCDIR([src/version.h])
++AC_CONFIG_MACRO_DIR([m4])
++# Checks for programs.
++AC_PROG_CC
++AM_PROG_CC_C_O
++AC_PROG_INSTALL
++AC_PROG_LN_S
++AC_PROG_MAKE_SET
++LT_INIT
++AM_INIT_AUTOMAKE([foreign dist-bzip2])
++
++# Checks for libraries.
++AC_CHECK_LIB([pthread], [pthread_create])
++
++# Checks for header files.
++AC_CHECK_HEADERS([fcntl.h limits.h stdint.h stdlib.h string.h strings.h sys/time.h syslog.h unistd.h])
++
++# Checks for programs
++AM_CONDITIONAL([HAVE_LYX], [test "$(which lyx)" = "true"])
++AM_CONDITIONAL([HAVE_HEVEA], [test "$(which hevea)" = "true"])
++
++
++# Checks for typedefs, structures, and compiler characteristics.
++AC_TYPE_PID_T
++AC_TYPE_SIZE_T
++AC_TYPE_UINT32_T
++AC_TYPE_UINT64_T
++
++# Checks for library functions.
++AC_FUNC_FORK
++AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
++AC_FUNC_REALLOC
++AC_CHECK_FUNCS([atexit gethostname gettimeofday localtime_r memmove memset setenv strchr strrchr strtol])
++
++AC_CONFIG_FILES([doc/Makefile
++                 Makefile
++                 src/Makefile
++                 test/Makefile
++                 tools/Makefile])
++AC_OUTPUT
+diff --git a/doc/Makefile.am b/doc/Makefile.am
+new file mode 100644
+index 0000000..e51557b
+--- /dev/null
++++ b/doc/Makefile.am
+@@ -0,0 +1,23 @@
++dist_doc_DATA = GettingStart-CN.txt \
++	GettingStart-EN.txt \
++	performence.txt \
++	UsersGuide-CN.lyx \
++	UsersGuide-EN.lyx \
++	zlog.conf
++
++if HAVE_LYX
++UsersGuide-EN.pdf : UsersGuide-EN.lyx
++	lyx -f -e pdf2 $^
++
++UsersGuide-CN.pdf : UsersGuide-CN.lyx
++	lyx -f -e pdf4 $^
++
++%.tex : %.lyx
++	lyx -f -e pdflatex $<
++endif
++
++if HAVE_HEVEA
++%.html : %.tex
++	hevea book.hva -s $<
++	hevea book.hva -s $<
++endif
+diff --git a/src/Makefile.am b/src/Makefile.am
+new file mode 100644
+index 0000000..a4dca8f
+--- /dev/null
++++ b/src/Makefile.am
+@@ -0,0 +1,42 @@
++NAME=zlog
++
++lib_LTLIBRARIES = libzlog.la
++
++# Version info is a bit crazy but for more info
++# https://www.gnu.org/software/libtool/manual/html_node/Libtool-versioning.html
++# value bellow is used for current soname compatibility but in future version
++# should be changed depending on interface changes look here for info
++# https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
++libzlog_la_LDFLAGS =-version-info 2:0:1
++libzlog_la_CFLAGS = -I.
++libzlog_la_SOURCES = buf.c buf.h \
++	category.c category.h \
++	category_table.c category_table.h \
++	conf.c conf.h \
++	event.c event.h \
++	fmacros.h version.h \
++	format.c format.h \
++	level.c level.h \
++	level_list.c level_list.h \
++	mdc.c mdc.h \
++	record.c record.h \
++	record_table.c record_table.h \
++	rotater.c rotater.h \
++	rule.c rule.h \
++	spec.c spec.h \
++	thread.c thread.h \
++	zc_arraylist.c zc_arraylist.h \
++	zc_hashtable.c zc_hashtable.h \
++	zc_profile.c zc_profile.h \
++	zc_util.c zc_util.h \
++	zc_xplatform.h \
++	zc_defs.h \
++	zlog.c zlog.h
++
++include_HEADERS = zlog.h
++
++bin_PROGRAMS = zlog-chk-conf
++zlog_chk_conf_CFLAGS = -I.
++zlog_chk_conf_LDADD = libzlog.la
++
++dist_man_MANS = zlog-chk-conf.1
+diff --git a/src/zlog-chk-conf.1 b/src/zlog-chk-conf.1
+new file mode 100644
+index 0000000..137628c
+--- /dev/null
++++ b/src/zlog-chk-conf.1
+@@ -0,0 +1,13 @@
++.\" DO NOT MODIFY THIS FILE!  It was generated by help2man 1.40.10.
++.TH ZLOG-CHK-CONF: "1" "" "zlog logging library" "User Commands"
++.SH NAME
++zlog-chk-conf
++.SH DESCRIPTION
++zlog\-chk\-conf [conf files]...
++.TP
++\fB\-q\fR,
++suppress non\-error message
++.TP
++\fB\-h\fR,
++show help message
++.PP
+diff --git a/test/Makefile.am b/test/Makefile.am
+new file mode 100644
+index 0000000..7ad7b43
+--- /dev/null
++++ b/test/Makefile.am
+@@ -0,0 +1,26 @@
++LDADD = $(top_builddir)/src/libzlog.la
++AM_CFLAGS = -I$(top_builddir)/src
++test_level_SOURCES = test_level.c test_level.h
++check_PROGRAMS = test_bitmap \
++	test_buf \
++	test_conf \
++	test_default \
++	test_hashtable \
++	test_hello  \
++	test_hex \
++	test_init \
++	test_leak \
++	test_level \
++	test_mdc \
++	test_pipe \
++	test_press_syslog \
++	test_press_write2 \
++	test_press_write \
++	test_press_zlog2 \
++	test_press_zlog \
++	test_profile \
++	test_record \
++	test_syslog \
++	test_tmp
++
++EXTRA_DIST = *.conf
+diff --git a/tools/Makefile.am b/tools/Makefile.am
+new file mode 100644
+index 0000000..38d3075
+--- /dev/null
++++ b/tools/Makefile.am
+@@ -0,0 +1 @@
++EXTRA_DIST = mk_targz.sh
