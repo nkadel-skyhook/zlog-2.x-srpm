@@ -33,7 +33,10 @@ srpm:: verifyspec FORCE
 		-bs $(SPEC) --nodeps
 
 build:: srpm FORCE
-	rpmbuild --rebuild `ls *.src.rpm | grep -v ^epel-`
+	rm -rf rpmbuild
+	mkdir rpmbuild rpmbuild/RPMS rpmbuild/RPMS/noarch rpmbuild/RPMS/x86_64 rpmbuild/RPMS/i386
+	mkdir rpmbuild/SRPMS
+	rpmbuild --rebuild --define "_topdir $$PWD/rpmbuid" `ls *.src.rpm | grep -v ^epel-`
 
 $(MOCKS):: verifyspec FORCE
 	@if [ -e $@ -a -n "`find $@ -name \*.rpm`" ]; then \
@@ -57,6 +60,7 @@ mock:: $(MOCKS)
 
 clean::
 	rm -rf $(MOCKS)
+	rm -rf rpmbuild
 
 realclean distclean:: clean
 	rm -f *.src.rpm
