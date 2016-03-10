@@ -5,27 +5,34 @@
 # Assure that sorting is case sensitive
 LANG=C
 
+#MOCKS+=epel-7-i386
 #MOCKS+=epel-6-i386
 #MOCKS+=epel-5-i386
 #MOCKS+=epel-4-i386
 
+MOCKS+=epel-7-x86_64
 MOCKS+=epel-6-x86_64
 #MOCKS+=epel-5-x86_64
 #MOCKS+=epel-4-x86_64
 
-SPEC := `ls *.spec | head -1`
-PKGNAME := "`ls *.spec | head -1 | sed 's/.spec$$//g'`"
+SPEC := zlog.spec
+PKGNAME := zlog
 
-all:: verifyspec $(MOCKS)
+all:: zlog.spec $(MOCKS)
 
-# Oddness to get deduced .spec file verified
-verifyspec:: FORCE
-	@if [ ! -e $(SPEC) ]; then \
-	    echo Error: SPEC file $(SPEC) not found, exiting; \
-	    exit 1; \
+#NAME and VERSION are from zlog.spec.in, BUILD_NUMBER is from Jenkins
+zlog.spec: zlog.spec.in Makefile
+	@echo "Generating $@"
+	if [ -n "$$BUILD_NUMBER" ]; then \
+	   echo "   Using Jenkins BUILD_NUMBER: $$BUILD_NUMBER"; \
+	   	cat scripts/zlog.spec.in | \
+	   	 sed "s/^Release:.*/Release:        $$BUILD_NUMBER%{?dist}/g" > \
+	   $@; \
+	else \
+	   rsync -a zlog.spec.in zlog.spec; \
 	fi
 
-srpm:: verifyspec FORCE
+srpm:: zlog.spec FORCE
 	@echo "Building SRPM with $(SPEC)"
 	rm -f $(PKGNAME)*.src.rpm
 	rpmbuild --define '_sourcedir $(PWD)' \
@@ -38,7 +45,7 @@ build:: srpm FORCE
 	mkdir rpmbuild/SRPMS
 	rpmbuild --rebuild --define "_topdir $$PWD/rpmbuid" `ls *.src.rpm | grep -v ^epel-`
 
-$(MOCKS):: verifyspec FORCE
+$(MOCKS):: zlog.spec FORCE
 	@if [ -e $@ -a -n "`find $@ -name \*.rpm`" ]; then \
 		echo "Skipping RPM populated $@"; \
 	else \
@@ -64,5 +71,6 @@ clean::
 
 realclean distclean:: clean
 	rm -f *.src.rpm
+	rm -f *.spec
 
 FORCE:
